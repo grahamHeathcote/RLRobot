@@ -48,7 +48,6 @@ end
 
 # ╔═╡ 7747676c-7d0c-433a-b4e2-95f52134be5b
 function newPol(V, pol, epsilon)
-	Q = zeros(16)
 	pol = fill(epsilon/4, 16, 4)
 	for i in 2:15
 		j = argmax(V[i, :])
@@ -67,22 +66,18 @@ function mc(episodeCount, episodeLength, gamma, alpha, epsilon)
 		eps, epsMoves = runSim(pol, episodeLength)
 		T = length(epsMoves)
 		G = zeros(T)
-		G[T] = -1 
 		Seen = falses(16, 4)
 		for j in reverse(1:T-1)
 			G[j] = gamma*G[j+1] - 1
 		end
-		# print("Init at ")
 		for moveCount in 1:T
 			s = eps[moveCount]
 			a = epsMoves[moveCount]
-			# print("(", a, " ", s,") ")
 			if !Seen[s, a]				
 				Seen[s, a] = true
 				V[s, a] = V[s, a] + (alpha*(G[moveCount] - V[s, a]))
 			end
 		end
-		# println()
 		pol = newPol(V, pol, epsilon)
 	end
 	return pol
