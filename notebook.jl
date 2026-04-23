@@ -9,56 +9,107 @@ using Distributions
 
 # ╔═╡ edff3a06-9c67-4468-b09f-a87d4354eec3
 function move(policy, loc)
-    dir = rand(Categorical(policy))
-    row, col = divrem(loc - 1, 4)
+    dir = rand(Categorical(policy[loc, :]))
+    row, col = divrem(loc-1, 4)
     if dir == 1 && row > 0 
-        return loc - 4
+		# Up
+        return loc - 4, dir
     elseif dir == 2 && row < 3 
-        return loc + 4
+		# Down
+        return loc + 4, dir
     elseif dir == 3 && col > 0 
-        return loc - 1
+		# Left
+        return loc - 1, dir 
     elseif dir == 4 && col < 3
-        return loc + 1
+		# Right
+        return loc + 1, dir
     else
-        return loc
+        return loc, dir
     end
 end
 
 # ╔═╡ e7ebb07b-85ad-40e3-af46-7829cff699c9
 function runSim(policy, length)
 	traj = Int[]
-	loc = rand(0:15)
+	moves = Int[]
+	loc = rand(2:15)
+	push!(traj, loc)
 	for i in 1:length
-		newLoc = move(policy, loc)
+		newLoc, dir = move(policy, loc)
 		push!(traj, newLoc)
+		push!(moves, dir)
 		loc = newLoc
-		if loc == 1 || loc == 15
+		if loc == 1 || loc == 16
 			break
 		end
 	end
-	return traj
+	return traj, moves
+end
+
+# ╔═╡ 7747676c-7d0c-433a-b4e2-95f52134be5b
+function newPol(V, pol, epsilon)
+	Q = zeros(16)
+	pol = fill(epsilon/4, 16, 4)
+	for i in 2:15
+		j = argmax(V[i, :])
+		pol[i, j] = 1-epsilon + (epsilon/4)
+	end
+	pol[1, :] .= .25
+	pol[16, :] .= .25
+	return pol
 end
 
 # ╔═╡ 1b4d5b88-befd-4479-9910-3a1e421f2857
-function mc(episodeCount, episodeLength, gamma)
-	pol = [.25, .25, .25, .25]
+function mc(episodeCount, episodeLength, gamma, alpha, epsilon)
+	pol = fill(.25, 16, 4)
+	V = zeros(16, 4)
 	for i in 1:episodeCount
-		eps = runSim(pol, episodeLength)
-		T = length(eps)
+		eps, epsMoves = runSim(pol, episodeLength)
+		T = length(epsMoves)
 		G = zeros(T)
+		G[T] = -1 
+		Seen = falses(16, 4)
 		for j in reverse(1:T-1)
-			G[j] = gamma*G[j+1] -1
+			G[j] = gamma*G[j+1] - 1
 		end
-		print(G)
-		print('\n')
+		# print("Init at ")
+		for moveCount in 1:T
+			s = eps[moveCount]
+			a = epsMoves[moveCount]
+			# print("(", a, " ", s,") ")
+			if !Seen[s, a]				
+				Seen[s, a] = true
+				V[s, a] = V[s, a] + (alpha*(G[moveCount] - V[s, a]))
+			end
+		end
+		# println()
+		pol = newPol(V, pol, epsilon)
 	end
+	return pol
+end
+
+# ╔═╡ 2f0dd0bb-ee94-4f45-9bae-ef005f968006
+function showPol(pol)
+    arrows = ['↑', '↓', '←', '→']
+    for row in 0:3
+        for col in 1:4
+            s = row*4 + col
+            if s == 1 || s == 16
+                print("  ")
+            else
+                dir = argmax(pol[s,:])
+                print(" ", arrows[dir])
+            end
+        end
+        println()
+    end
 end
 
 # ╔═╡ dc68d5dc-b02b-478f-97b3-aabe59001bea
-mc(1, 32, .99)
+pol = mc(1000, 32, 1, .1, .1)
 
-# ╔═╡ fbb1e041-025b-4043-a551-3b558b047959
-l = runSim([.25, .25, .25, .25], 300)
+# ╔═╡ cbdfbce7-5f12-46be-8285-5d063ed0181c
+showPol(pol)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -372,7 +423,9 @@ version = "5.15.0+0"
 # ╠═edff3a06-9c67-4468-b09f-a87d4354eec3
 # ╠═e7ebb07b-85ad-40e3-af46-7829cff699c9
 # ╠═1b4d5b88-befd-4479-9910-3a1e421f2857
+# ╠═7747676c-7d0c-433a-b4e2-95f52134be5b
+# ╠═2f0dd0bb-ee94-4f45-9bae-ef005f968006
 # ╠═dc68d5dc-b02b-478f-97b3-aabe59001bea
-# ╠═fbb1e041-025b-4043-a551-3b558b047959
+# ╠═cbdfbce7-5f12-46be-8285-5d063ed0181c
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
