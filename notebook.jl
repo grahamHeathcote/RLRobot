@@ -101,7 +101,7 @@ function showPol(pol)
 end
 
 # ╔═╡ dc68d5dc-b02b-478f-97b3-aabe59001bea
-pol = mc(1000, 32, 1, .1, .1)
+pol = mc(100, 16, 1, .1, .1)
 
 # ╔═╡ cbdfbce7-5f12-46be-8285-5d063ed0181c
 showPol(pol)
